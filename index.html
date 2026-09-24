@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Check — strict validation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #F7F5EF;
+    --paper-2: #FFFFFF;
+    --ink: #1B2A4A;
+    --ink-soft: #4B5670;
+    --stamp: #B8432F;
+    --good: #2F6B4F;
+    --good-bg: #E7F1EB;
+    --bad: #B8432F;
+    --bad-bg: #FBEAE6;
+    --line: rgba(27,42,74,0.14);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body{
+    min-height: 100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 40px 20px;
+  }
+
+  .wrap{ width: 100%; max-width: 640px; }
+
+  header.hero{ margin-bottom: 28px; }
+
+  .hero h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(2rem, 5vw, 2.7rem);
+    line-height: 1.1;
+    margin: 0 0 10px 0;
+    letter-spacing: -0.01em;
+  }
+
+  .hero p{
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 50ch;
+  }
+
+  .ticket{
+    background: var(--paper-2);
+    border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(27,42,74,0.04), 0 12px 30px -18px rgba(27,42,74,0.35);
+    position: relative;
+    margin-top: 32px;
+  }
+
+  .ticket-top{ padding: 28px 28px 22px 28px; }
+
+  .field-label{
+    display:block;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+
+  .input-row{ display:flex; gap: 10px; }
+  .input-row + .input-row{ margin-top: 16px; }
+
+  input[type="text"]{
+    flex: 1;
+    min-width: 0;
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 14px 16px;
+    border-radius: 9px;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  input[type="text"]::placeholder{ color: #9AA3B5; font-weight: 400; }
+  input[type="text"]:focus{ border-color: var(--ink); background: var(--paper-2); }
+  input[type="text"]:focus-visible{ outline: 2px solid var(--stamp); outline-offset: 2px; }
+
+  input[type="text"].field-bad{ border-color: var(--bad); }
+  input[type="text"].field-good{ border-color: var(--good); }
+
+  .clear-btn{
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .clear-btn:hover{ color: var(--ink); }
+  .clear-btn:focus-visible{ outline: 2px solid var(--stamp); outline-offset: 2px; }
+
+  .match-note{
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    min-height: 1.2em;
+  }
+  .match-note.good{ color: var(--good); }
+  .match-note.bad{ color: var(--bad); }
+
+  .perforation{ position: relative; height: 0; border-top: 1.5px dashed var(--line); }
+  .notch{ position: absolute; top: -11px; width: 22px; height: 22px; border-radius: 50%; background: var(--paper); }
+  .notch.left{ left: -11px; }
+  .notch.right{ right: -11px; }
+
+  .ticket-bottom{ padding: 22px 28px 28px 28px; }
+
+  .checklist{ list-style: none; margin: 0 0 16px 0; padding: 0; display: grid; gap: 8px; }
+
+  .checklist li{
+    display:flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+
+  .checklist li .mark{
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border-radius: 50%;
+    border: 1.5px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 0.6rem;
+    color: transparent;
+    background: var(--paper);
+    transition: all 0.2s ease;
+  }
+
+  .checklist li .text .hint{
+    display:block;
+    color: var(--stamp);
+    font-size: 0.78rem;
+    margin-top: 2px;
+  }
+
+  .checklist li.pass .mark{ background: var(--good); border-color: var(--good); color: #fff; }
+  .checklist li.pass .mark::after{ content: "✓"; }
+
+  .checklist li.fail .mark{ background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+  .checklist li.fail .mark::after{ content: "✕"; font-size: 0.56rem; }
+
+  .checklist li.idle .mark::after{ content: ""; }
+
+  .verdict{
+    border-radius: 10px;
+    padding: 14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.86rem;
+    font-weight: 500;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    color: var(--ink-soft);
+    transition: all 0.2s ease;
+  }
+
+  .verdict .stamp-word{ font-family: 'Fraunces', serif; font-weight: 600; font-size: 1rem; }
+  .verdict.valid{ background: var(--good-bg); border-color: var(--good); color: var(--good); }
+  .verdict.invalid{ background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+  .verdict .icon{ font-size: 1.1rem; line-height: 1; }
+
+  footer.note{
+    margin-top: 18px;
+    font-size: 0.76rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    max-width: 56ch;
+  }
+
+  @media (max-width: 480px){
+    .ticket-top{ padding: 22px 18px 20px 18px; }
+    .ticket-bottom{ padding: 18px 18px 22px 18px; }
+    .input-row{ flex-direction: column; }
+    .clear-btn{ align-self: flex-end; }
+  }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>Is this a real email address?</h1>
+    <p>Strict check: real extension (.com, .in, .org…), no spelling mistakes in known providers, no disposable/fake mail services, and both entries must match.</p>
+  </header>
+
+  <div class="ticket">
+    <div class="ticket-top">
+      <label class="field-label" for="emailInput">Email address</label>
+      <div class="input-row">
+        <input type="text" id="emailInput" placeholder="name@example.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button class="clear-btn" id="clearBtn1" type="button">Clear</button>
+      </div>
+
+      <label class="field-label" style="margin-top:16px;" for="confirmInput">Confirm email address</label>
+      <div class="input-row">
+        <input type="text" id="confirmInput" placeholder="Type it again" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button class="clear-btn" id="clearBtn2" type="button">Clear</button>
+      </div>
+      <div class="match-note" id="matchNote"></div>
+    </div>
+
+    <div class="perforation">
+      <span class="notch left"></span>
+      <span class="notch right"></span>
+    </div>
+
+    <div class="ticket-bottom">
+      <ul class="checklist" id="checklist">
+        <li class="idle" data-rule="format"><span class="mark"></span><span class="text">Matches a real email pattern (one @, valid characters, no spaces)</span></li>
+        <li class="idle" data-rule="domain"><span class="mark"></span><span class="text">Domain is well-formed (no double dots, no leading/trailing dash or dot)</span></li>
+        <li class="idle" data-rule="tld"><span class="mark"></span><span class="text">Ends in a recognized extension (.com, .in, .org, .net, .co.in, etc.)</span></li>
+        <li class="idle" data-rule="typo"><span class="mark"></span><span class="text" id="typoText">Not a misspelling of a popular provider (gmail.com, yahoo.com…)</span></li>
+        <li class="idle" data-rule="disposable"><span class="mark"></span><span class="text">Not a disposable / temporary mail service</span></li>
+        <li class="idle" data-rule="match"><span class="mark"></span><span class="text">Confirmation field matches exactly</span></li>
+      </ul>
+
+      <div class="verdict" id="verdict">
+        <span class="stamp-word" id="verdictText">Waiting for input</span>
+        <span class="icon" id="verdictIcon">✎</span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="note">
+    This checks structure, extension, known-provider spelling, and disposable-domain lists — it can't confirm the mailbox truly receives mail. That still needs a real verification email sent to the address.
+  </footer>
+</div>
+
+<script>
+  const emailInput = document.getElementById('emailInput');
+  const confirmInput = document.getElementById('confirmInput');
+  const clearBtn1 = document.getElementById('clearBtn1');
+  const clearBtn2 = document.getElementById('clearBtn2');
+  const matchNote = document.getElementById('matchNote');
+  const checklist = document.getElementById('checklist');
+  const verdict = document.getElementById('verdict');
+  const verdictText = document.getElementById('verdictText');
+  const verdictIcon = document.getElementById('verdictIcon');
+  const typoText = document.getElementById('typoText');
+
+  const items = {
+    format: checklist.querySelector('[data-rule="format"]'),
+    domain: checklist.querySelector('[data-rule="domain"]'),
+    tld: checklist.querySelector('[data-rule="tld"]'),
+    typo: checklist.querySelector('[data-rule="typo"]'),
+    disposable: checklist.querySelector('[data-rule="disposable"]'),
+    match: checklist.querySelector('[data-rule="match"]'),
+  };
+
+  const FULL_EMAIL_RE = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+  // Recognized extensions, longest first so "co.in" matches before "in"
+  const VALID_TLDS = [
+    "co.in","net.in","org.in","gov.in","ac.in","edu.in","gen.in","firm.in","ind.in",
+    "co.uk","org.uk","ac.uk","gov.uk","net.uk",
+    "com.au","net.au","org.au","gov.au","edu.au",
+    "com.br","com.mx","com.sg","com.hk","com.tw","com.cn",
+    "com","org","net","edu","gov","mil","int",
+    "in","co","io","info","biz","me","us","uk","ca","au","de","fr","jp","cn","ru",
+    "br","nl","es","it","ch","se","no","dk","fi","pl","gr","pt","tr","mx","ar","kr",
+    "sg","hk","tw","nz","ie","be","at","cz","hu","ro","bg","hr","sk","si","lt","lv",
+    "ee","is","lu","mt","cy","ai","app","dev","tech","online","store","site","xyz",
+    "tv","cc","name","pro","mobi","asia","za","il","sa","ae","pk","bd","lk","np"
+  ].sort((a,b) => b.length - a.length);
+
+  const DISPOSABLE_DOMAINS = new Set([
+    "mailinator.com","tempmail.com","temp-mail.org","10minutemail.com","guerrillamail.com",
+    "guerrillamail.info","yopmail.com","throwawaymail.com","getnada.com","trashmail.com",
+    "fakeinbox.com","sharklasers.com","dispostable.com","mintemail.com","mailnesia.com",
+    "spamgourmet.com","mytemp.email","moakt.com","tempinbox.com","emailondeck.com",
+    "maildrop.cc","mohmal.com","spam4.me","33mail.com","tempr.email","fakemail.net",
+    "discard.email","mailcatch.com","trbvm.com","spambog.com","tmpmail.org","emailfake.com"
+  ]);
+
+  // popular real providers, used only to catch near-miss typos
+  const POPULAR_DOMAINS = [
+    "gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","live.com",
+    "aol.com","protonmail.com","rediffmail.com","zoho.com","gmx.com","yandex.com",
+    "hotmail.co.in","yahoo.co.in","outlook.in"
+  ];
+
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m+1}, () => new Array(n+1).fill(0));
+    for(let i=0;i<=m;i++) dp[i][0]=i;
+    for(let j=0;j<=n;j++) dp[0][j]=j;
+    for(let i=1;i<=m;i++){
+      for(let j=1;j<=n;j++){
+        const cost = a[i-1] === b[j-1] ? 0 : 1;
+        dp[i][j] = Math.min(
+          dp[i-1][j] + 1,
+          dp[i][j-1] + 1,
+          dp[i-1][j-1] + cost
+        );
+      }
+    }
+    return dp[m][n];
+  }
+
+  function findTypo(domain){
+    if(!domain) return null;
+    const d = domain.toLowerCase();
+    let best = null;
+    for(const p of POPULAR_DOMAINS){
+      if(d === p) return null; // exact match, no typo
+      const dist = levenshtein(d, p);
+      // only flag as typo when it's genuinely close, not just any short domain
+      if(dist > 0 && dist <= 2 && Math.abs(d.length - p.length) <= 2){
+        if(!best || dist < best.dist) best = { domain: p, dist };
+      }
+    }
+    return best ? best.domain : null;
+  }
+
+  function setState(el, state){
+    el.classList.remove('pass', 'fail', 'idle');
+    el.classList.add(state);
+  }
+
+  function resetAll(){
+    Object.values(items).forEach(el => setState(el, 'idle'));
+    verdict.classList.remove('valid', 'invalid');
+    verdictText.textContent = 'Waiting for input';
+    verdictIcon.textContent = '✎';
+    emailInput.classList.remove('field-bad','field-good');
+    confirmInput.classList.remove('field-bad','field-good');
+    matchNote.textContent = '';
+    matchNote.classList.remove('good','bad');
+    typoText.textContent = 'Not a misspelling of a popular provider (gmail.com, yahoo.com…)';
+  }
+
+  function evaluate(){
+    const value = emailInput.value;
+    const confirmValue = confirmInput.value;
+
+    if(value.length === 0 && confirmValue.length === 0){
+      resetAll();
+      return;
+    }
+
+    const results = {};
+
+    // format
+    results.format = FULL_EMAIL_RE.test(value);
+    setState(items.format, results.format ? 'pass' : 'fail');
+
+    const atIndex = value.indexOf('@');
+    const domainPart = atIndex > -1 ? value.slice(atIndex + 1).toLowerCase() : '';
+
+    // domain well-formed
+    const domainOk = domainPart.length > 0 &&
+      domainPart.includes('.') &&
+      !domainPart.startsWith('.') && !domainPart.endsWith('.') &&
+      !domainPart.includes('..') &&
+      !domainPart.startsWith('-') && !domainPart.endsWith('-');
+    results.domain = domainOk;
+    setState(items.domain, results.domain ? 'pass' : 'fail');
+
+    // recognized TLD
+    const tldOk = results.domain && VALID_TLDS.some(t => domainPart.endsWith('.' + t));
+    results.tld = tldOk;
+    setState(items.tld, results.tld ? 'pass' : 'fail');
+
+    // typo check against popular providers
+    const typoSuggestion = results.domain ? findTypo(domainPart) : null;
+    results.typo = !typoSuggestion;
+    setState(items.typo, results.typo ? 'pass' : 'fail');
+    typoText.innerHTML = typoSuggestion
+      ? `Looks like a misspelling of a popular provider<span class="hint">Did you mean ${typoSuggestion}?</span>`
+      : 'Not a misspelling of a popular provider (gmail.com, yahoo.com…)';
+
+    // disposable check
+    const isDisposable = DISPOSABLE_DOMAINS.has(domainPart);
+    results.disposable = !isDisposable;
+    setState(items.disposable, results.disposable ? 'pass' : 'fail');
+
+    // confirm match
+    const bothFilled = value.length > 0 && confirmValue.length > 0;
+    results.match = bothFilled && value === confirmValue;
+    setState(items.match, bothFilled ? (results.match ? 'pass' : 'fail') : 'idle');
+
+    if(bothFilled){
+      matchNote.textContent = results.match ? 'Both entries match.' : "These don't match yet.";
+      matchNote.classList.toggle('good', results.match);
+      matchNote.classList.toggle('bad', !results.match);
+      confirmInput.classList.toggle('field-good', results.match);
+      confirmInput.classList.toggle('field-bad', !results.match);
+    } else {
+      matchNote.textContent = confirmValue.length > 0 ? '' : 'Retype the address to confirm.';
+      matchNote.classList.remove('good','bad');
+      confirmInput.classList.remove('field-good','field-bad');
+    }
+
+    emailInput.classList.toggle('field-good', results.format && results.domain && results.tld);
+    emailInput.classList.toggle('field-bad', value.length > 0 && !(results.format && results.domain && results.tld));
+
+    const allPass = results.format && results.domain && results.tld && results.typo && results.disposable;
+    const readyForVerdict = value.length > 0;
+
+    verdict.classList.remove('valid', 'invalid');
+    if(!readyForVerdict){
+      verdictText.textContent = 'Waiting for input';
+      verdictIcon.textContent = '✎';
+    } else if(allPass && (confirmValue.length === 0 || results.match)){
+      if(confirmValue.length === 0){
+        verdict.classList.add('valid');
+        verdictText.textContent = 'Looks valid — now confirm it';
+        verdictIcon.textContent = '↻';
+      } else {
+        verdict.classList.add('valid');
+        verdictText.textContent = 'Valid email address';
+        verdictIcon.textContent = '✓';
+      }
+    } else {
+      verdict.classList.add('invalid');
+      verdictText.textContent = 'Not a valid email address';
+      verdictIcon.textContent = '✕';
+    }
+  }
+
+  emailInput.addEventListener('input', evaluate);
+  confirmInput.addEventListener('input', evaluate);
+
+  clearBtn1.addEventListener('click', () => { emailInput.value=''; emailInput.focus(); evaluate(); });
+  clearBtn2.addEventListener('click', () => { confirmInput.value=''; confirmInput.focus(); evaluate(); });
+
+  resetAll();
+</script>
+
+</body>
+</html>
